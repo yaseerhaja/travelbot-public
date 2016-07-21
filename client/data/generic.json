@@ -4,33 +4,35 @@
         "payload": {
           "template_type": "generic",
           "elements": [{
-            "title": "rift",
-            "subtitle": "Next-generation virtual reality",
-            "item_url": "https://www.oculus.com/en-us/rift/",               
-            "image_url": "http://messengerdemo.parseapp.com/img/rift.png",
+            "title": "Checkin Mode : PNR",
+            "subtitle": "Enter the 6 digit PNR Number",
+            "item_url": "",               
+            "image_url": "https://travelbot-public-yaseerhaja.c9users.io/img/KLM-Airlines-plane.jpg",
             "buttons": [{
-              "type": "web_url",
-              "url": "https://www.oculus.com/en-us/rift/",
-              "title": "Open Web URL"
-            }, {
               "type": "postback",
-              "title": "Call Postback",
-              "payload": "Payload for first bubble"
+              "title": "Select",
+              "payload": "PNR-ENTRY"
             }]
           }, {
-            "title": "touch",
-            "subtitle": "Your Hands, Now in VR",
-            "item_url": "https://www.oculus.com/en-us/touch/",               
-            "image_url": "http://messengerdemo.parseapp.com/img/touch.png",
+            "title": "Checkin Mode : E-Ticket",
+            "subtitle": "Enter the 13 digit E-Ticket Number",
+            "item_url": "",               
+            "image_url": "https://travelbot-public-yaseerhaja.c9users.io/img/KLM-Airlines-plane.jpg",
             "buttons": [{
-              "type": "web_url",
-              "url": "https://www.oculus.com/en-us/touch/",
-              "title": "Open Web URL"
-            }, {
               "type": "postback",
-              "title": "Call Postback",
-              "payload": "Payload for second bubble"
+              "title": "Select",
+              "payload": "eTICKET-ENTRY"
             }]
+          }, {
+            "title": "Checkin Mode : Frequent Flyer",
+            "subtitle": "Enter the 11 digit E-Ticket Number",
+            "item_url": "",               
+            "image_url": "https://travelbot-public-yaseerhaja.c9users.io/img/KLM-Airlines-plane.jpg",
+            "buttons": [{
+              "type": "postback",
+              "title": "Select",
+              "payload": "Frequentflyer-ENTRY"
+            }]  
           }]
         }
       }

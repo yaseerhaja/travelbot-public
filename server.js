@@ -9,6 +9,7 @@ var app = express();
 var bodyParser = require('body-parser');
 var path = require("path");
 var request = require('request');
+var modeofselection = 0;
 
 app.use(bodyParser.json());
 
@@ -34,7 +35,11 @@ app.post('/webhook', function (req, res) {
         if (messagingEvent.optin) {
           receivedAuthentication(messagingEvent);
         } else if (messagingEvent.message) {
-          receivedMessage(messagingEvent);
+          var message = messagingEvent.message.text;
+          if(message.substring(0,1) == "#")
+            receivedIdentificationMessage(messagingEvent); 
+          else
+            receivedMessage(messagingEvent);
         } else if (messagingEvent.delivery) {
           receivedDeliveryConfirmation(messagingEvent);
         } else if (messagingEvent.postback) {
@@ -55,7 +60,42 @@ function getJson(filename){
 }
 
 function receivedPostback(event){
-  var message = event.postback.payload;
+  var payload = event.postback.payload;
+  var senderID = event.sender.id;
+  if (payload) {
+    switch (payload) {
+      case 'PNR-ENTRY':
+        modeofselection = 1;
+        sendMessage(senderID,"Please enter your PNR");
+        break;
+
+      case 'eTICKET-ENTRY':
+        modeofselection = 2;
+        sendMessage(senderID, "Please enter your eTicket Number");
+        break;
+
+      case 'Frequentflyer-ENTRY':
+        modeofselection = 3;
+        sendMessage(senderID, "Please enter your Frequentflyer Number");
+        break;
+      default:
+        modeofselection = 0;
+        sendMessage(senderID, "Mode of Identification skipped");
+    }
+  } 
+}
+
+function sendMessage(recipientId, message){
+  var messageData = {
+    recipient: {
+      id: recipientId
+    },
+    message: {
+      text: message
+    }
+  };
+
+  callSendAPI(messageData);
 }
 
 function receivedAuthentication(event){
@@ -64,6 +104,10 @@ function receivedAuthentication(event){
 
 function receivedDeliveryConfirmation(event){
   
+}
+
+function receivedIdentificationMessage(event){
+  sendItinerary(event.sender.id);
 }
 
 function receivedMessage(event) {
