@@ -36,7 +36,7 @@ app.post('/webhook', function (req, res) {
           receivedAuthentication(messagingEvent);
         } else if (messagingEvent.message) {
           var message = messagingEvent.message.text;
-          if(message.substring(0,1) == "#")
+          if(typeof message !== 'undefined' && message.substring(0,1) == "#")
             receivedIdentificationMessage(messagingEvent); 
           else
             receivedMessage(messagingEvent);
