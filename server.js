@@ -4,22 +4,44 @@
 // A simple airline checkin application.
 //
 
-var express = require('express');
-var app = express();
-var bodyParser = require('body-parser');
-var path = require("path");
-var request = require('request');
-var senderID_arr = [];
+var express = require('express'),
+    app = express(),
+    bodyParser = require('body-parser'),
+    path = require("path"),
+    request = require('request'),
+    senderID_arr = [],
+    messages = {
+      'code0' : ' is closed',
+      'code1' : ' is delayed'
+    },
+    flightgrp = {
+      'KL1400' : ['748955295208120','1039929506083473'],
+      'KL1100' : ['748955295208120','1039929506083473'],
+      'KL1600' : ['748955295208120','1039929506083473'],
+      'AF1400' : ['748955295208120','1039929506083473'],
+      'AF1100' : ['748955295208120','1039929506083473'],
+      'AF1600' : ['748955295208120','1039929506083473'],
+    },
+    welcomeMessage = "Greetings! We are here to help you with checkin and other available feature in checkin phase for multiple airlines, please choose your airline…",
+    airlineSelection = getJson('airlines');
 
 app.use(bodyParser.json());
 app.use(express.static(path.resolve(__dirname, 'client')));
 
-app.get('/index',function(req,res){
+app.get('/init',function(req,res){
   res.sendFile(__dirname+'/client/index.html');
 });
 
-app.get('/', function (req, res) {
+app.get('/admin',function(req,res){
+  res.sendFile(__dirname+'/client/admin.html');
+});
+
+app.get('/test', function (req, res) {
   res.send('Hello World!');
+});
+
+app.get('/sendMessage', function (req, res) {
+  sendadminMessage(messages[req.query.code], flightgrp[req.query.flight_info],req.query.flight_info);
 });
 
 app.post('/webhook', function (req, res) {
@@ -227,14 +249,28 @@ function sendBoardingPass(recipientId){
 }
 
 function broadCastMessage(){
-  for(var i in senderID_arr)
-    sendMessage(senderID_arr[i], "Welcome to Travelbot");
-    
-  setTimeout(broadCastMessage, 5*60*60*1000);  
+  var message = '';
+  for(var i in senderID_arr){
+    sendMessage(senderID_arr[i], welcomeMessage);
+    message =  {
+        "recipient": {
+          "id": senderID_arr[i]
+        },
+         "message": airlineSelection 
+      };
+    callSendAPI(message);
+  }  
+  setTimeout(broadCastMessage, 2*60*60*1000);  
+}
+
+function sendadminMessage(message, recipientList,flight_info){
+  for(var i in recipientList){
+    message = "Your flight No : "+ flight_info + message +"\nWe are sorry for inconvenience caused.";
+    sendMessage(recipientList[i], message);
+  } 
 }
 
 app.listen(process.env.PORT, function () {
-  setTimeout(broadCastMessage, 5000);
-  
-  console.log('Example app listening on port');
+  //setTimeout(broadCastMessage, 5000);
+  console.log('Server is up and running...');
 });

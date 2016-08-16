@@ -1,0 +1,39 @@
+{
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "KLM Airlines",
+            "subtitle": "KLM, legally Koninklijke Luchtvaart Maatschappij N.V. (Royal Dutch Airlines), is the flag carrier airline of the Netherlands",
+            "item_url": "https://www.klm.com",               
+            "image_url": "https://travelbot-public-yaseerhaja.c9users.io/img/KLM-Airlines-plane.jpg",
+            "buttons": [{
+              "type": "postback",
+              "title": "Select",
+              "payload": "KLM"
+            }]
+          }, {
+            "title": "Lufthansa",
+            "subtitle": "Deutsche Lufthansa AG (FWB: LHA) (German pronunciation: [ˈdɔʏtʃə ˈlʊfthanzaː]), commonly known as Lufthansa (sometimes also as Lufthansa German Airlines), is the largest German airline",
+            "item_url": "http://www.lufthansa.com/online/portal/lh/in/homepage",               
+            "image_url": "https://travelbot-public-yaseerhaja.c9users.io/img/lufthansa.jpg",
+            "buttons": [{
+              "type": "postback",
+              "title": "Select",
+              "payload": "Lufthansa"
+            }]
+          }, {
+            "title": "British Airways",
+            "subtitle": "British Airways, often shortened to BA, is the flag carrier and the largest airline in the United Kingdom based on fleet size. When measured by passengers carried, it is second-largest in the United Kingdom behind easyJet",
+            "item_url": "http://www.britishairways.com/travel/home/public/en_in",               
+            "image_url": "https://travelbot-public-yaseerhaja.c9users.io/img/british-airways.jpg",
+            "buttons": [{
+              "type": "postback",
+              "title": "Select",
+              "payload": "British Airways"
+            }]  
+          }]
+        }
+      }
+    }

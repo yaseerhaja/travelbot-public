@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+ <head>
+     <title>Admin Tool</title>
+     <script type="text/javascript">
+         function sendMessage(obj){
+             var airline = $('#airline').val();
+             var flight = $('#flight').val(); 
+             var param = airline + flight;
+             var url = "https://travelbot-public-yaseerhaja.c9users.io/sendMessage?code="+$(obj).attr('name')+"&flight_info="+param;
+                 
+                $('#imgData').attr('src',url);     
+         }
+     </script>
+ </head>
+ <body>
+     <div>
+     Select your Airline : 
+     <select id="airline">
+         <option value="KL">KLM</option>
+         <option value="AF">Airfrance</option>
+     </select>
+     </div>
+     
+     <div>
+     Select your flight : 
+     <select id="flight">
+         <option value="1400">1400</option>
+         <option value="1100">1100</option>
+         <option value="1100">1100</option>
+     </select>
+     </div>
+     
+     <div>
+         Select your option
+         <input type="button" name="code0" value="Flight Closed" onClick="sendMessage(this);"/>
+         <input type="button" name="code1" value="Flight Delayed" onClick="sendMessage(this);"/>
+         
+     </div>
+     <img id="imgData" src="" style="display:none;"></img>
+     <script src="/js/jquery.min.js"></script>
+ </body>
+</html>

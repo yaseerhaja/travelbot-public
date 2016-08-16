@@ -3,7 +3,7 @@
                       "type": "template",
                       "payload": {
                         "template_type": "airline_itinerary",
-                        "intro_message": "Here\'s your flight itinerary.",
+                        "intro_message": "Here's your flight itinerary.",
                         "locale": "en_US",
                         "pnr_number": "ABCDEF",
                         "passenger_info": [
