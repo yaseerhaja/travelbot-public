@@ -4,6 +4,7 @@
 // A simple airline checkin application.
 //
 
+var store = {};
 var express = require('express'),
     app = express(),
     bodyParser = require('body-parser'),
@@ -28,6 +29,11 @@ var express = require('express'),
 app.use(bodyParser.json());
 app.use(express.static(path.resolve(__dirname, 'client')));
 
+var cookieParser = require('cookie-parser')
+var session = require('express-session');
+app.use(cookieParser('S3CRE7'));
+app.use(session());
+
 app.get('/init',function(req,res){
   res.sendFile(__dirname+'/client/index.html');
 });
@@ -45,39 +51,51 @@ app.get('/sendMessage', function (req, res) {
 });
 
 app.post('/webhook', function (req, res) {
-  var data = req.body;
   
-  if (data.object == 'page') {
-    data.entry.forEach(function(pageEntry) {
-      pageEntry.messaging.forEach(function(messagingEvent) {
-        if (messagingEvent.optin) {
-          // Todo - receivedAuthentication(messagingEvent);
-        } else if (messagingEvent.message) {
-          var message = messagingEvent.message.text;
-          if(typeof message !== 'undefined' && message.substring(0,1) == "#")
-            receivedIdentificationMessage(messagingEvent); 
-          else
-            receivedMessage(messagingEvent);
-        } else if (messagingEvent.delivery) {
-          // Todo - receivedDeliveryConfirmation(messagingEvent);
-        } else if (messagingEvent.postback) {
-          receivedPostback(messagingEvent);
-        } else {
-          console.log("Webhook received unknown messagingEvent: ", messagingEvent);
+  console.log(store);
+        var data = req.body;
+        if (data.object == 'page') {
+          data.entry.forEach(function(pageEntry) {
+          pageEntry.messaging.forEach(function(messagingEvent) {
+            var senderid = messagingEvent.sender.id;
+            initSession(senderid);
+          if (messagingEvent.message) {
+            sendGenericMessage(senderid);
+            }
+          else if (messagingEvent.postback) {
+              if (store.userConversationMap != undefined && store.userConversationMap[senderid] != undefined && store.userConversationMap[senderid].nextExpectedAction == 'chooseIdentification') {
+                  receivedPostBackForIdentification(req, messagingEvent);
+              } else {
+                initSession(senderid);
+                sendGenericMessage(senderid);    
+              }
         }
-      });
-    });
-
+          })
+          });
+      } 
     res.sendStatus(200);
+  });
+
+function initSession(senderid) {
+  console.log("senderid :" + senderid);
+  console.log("store.userConversationMap :" + store.userConversationMap);
+  if(store.userConversationMap == undefined) {
+     store.userConversationMap = {}; 
+    }
+  if (store.userConversationMap[senderid] == undefined) {
+    console.log("store.userConversationMap[senderid] :" + store.userConversationMap[senderid]);
+    var userData = {};
+    userData['nextExpectedAction'] = 'chooseIdentification';
+    store.userConversationMap[senderid] = userData;
   }
-});
+}
 
 function getJson(filename){
  var contents = require(__dirname+'/client/data/'+filename+'.json');
  return contents;
 }
 
-function receivedPostback(event){
+function receivedPostBackForIdentification(req, event){
   var payload = event.postback.payload;
   var senderID = event.sender.id;
   var modeofselection = 0;
@@ -99,7 +117,8 @@ function receivedPostback(event){
         break;
       default:
         modeofselection = 0;
-        sendMessage(senderID, "Mode of Identification skipped");
+        initSession(senderID);
+        sendGenericMessage(senderID);
     }
   } 
 }

@@ -11,6 +11,8 @@
     "express-generator": "^4.13.4",
     "fs": "0.0.2",
     "path": "^0.12.7",
-    "request": "^2.73.0"
+    "request": "^2.73.0",
+    "cookie-parser": "^1.4.3",
+    "express-session": "^1.14.0"
   }
 }
