@@ -4,13 +4,14 @@
 // A simple airline checkin application.
 //
 
-var store = {};
-var express = require('express'),
+var store = {},
+    express = require('express'),
     app = express(),
     bodyParser = require('body-parser'),
     path = require("path"),
     request = require('request'),
     senderID_arr = [],
+    qflowtype='',
     messages = {
       'code0' : ' is closed',
       'code1' : ' is delayed'
@@ -23,16 +24,16 @@ var express = require('express'),
       'AF1100' : ['748955295208120','1039929506083473','1129479503756044'],
       'AF1600' : ['748955295208120','1039929506083473','1129479503756044']
     },
-    welcomeMessage = "Greetings! We are here to help you with checkin and other available feature in checkin phase for multiple airlines, please choose your airline…",
+    welcomeMessage = "Greetings! We are here to help you with checkin and other available feature in checkin phase for klm airline, please choose your start over from menu…",
     airlineSelection = getJson('airlines');
 
 app.use(bodyParser.json());
 app.use(express.static(path.resolve(__dirname, 'client')));
 
-var cookieParser = require('cookie-parser')
+/*var cookieParser = require('cookie-parser')
 var session = require('express-session');
 app.use(cookieParser('S3CRE7'));
-app.use(session());
+app.use(session());*/
 
 app.get('/init',function(req,res){
   res.sendFile(__dirname+'/client/index.html');
@@ -58,35 +59,44 @@ app.post('/webhook', function (req, res) {
           data.entry.forEach(function(pageEntry) {
           pageEntry.messaging.forEach(function(messagingEvent) {
             var senderid = messagingEvent.sender.id;
-              /*console.log("senderid :" + senderid);
-               var recipientID = messagingEvent.recipient.id;
-              console.log("recipientID " +  recipientID)*/
-              
               if(typeof store.userConversationMap === 'undefined' || typeof store.userConversationMap[senderid] === 'undefined'){
                  initSession(senderid);
               }
               
              if (messagingEvent.message) {
                 console.log("Next Action ---> "+store.userConversationMap[senderid].nextExpectedAction);
-                if(messagingEvent.message.text == "end"){
-                  store.userConversationMap[senderid].nextExpectedAction = 'chooseIdentification';
-                  sendMessage(senderid,"Your current session is ended.");
+                if(messagingEvent.message.text && (messagingEvent.message.text).toLowerCase() == "end"){
+                  endMessage(senderid, 0);
                 }
                 else if(store.userConversationMap[senderid].nextExpectedAction == 'pnrCheck' || store.userConversationMap[senderid].nextExpectedAction == 'e-tktCheck' ||
                   store.userConversationMap[senderid].nextExpectedAction == 'fqtCheck')
                   checkIdentification(senderid,store.userConversationMap[senderid].nextExpectedAction,messagingEvent.message);
-                else if(store.userConversationMap[senderid].nextExpectedAction == 'itinerary'){
+                else if(store.userConversationMap[senderid].nextExpectedAction == 'itinerary' || store.userConversationMap[senderid].nextExpectedAction == 'viewItinerary'){
                   receivedPostBackForquickreply(senderid, store.userConversationMap[senderid].nextExpectedAction,messagingEvent.message.quick_reply.payload);
                 }
-                else
-                  sendGenericMessage(senderid);
+                else if(store.userConversationMap[senderid].nextExpectedAction == 'checkin-yes'){
+                  sendMessage(senderid,"Your Checkin is successfull. Please view the boardingpass below");  
+                  sendBoardingPass(senderid);
+                  endMessage(senderid, 3000);
+                }
+                else if(store.userConversationMap[senderid].nextExpectedAction == 'chooseIdentification'){
+                  sendMessage(senderid,welcomeMessage); 
+                }
+                else if(store.userConversationMap[senderid].nextExpectedAction == 'chooseIdentification' && (messagingEvent.message.text).toLowerCase() == "start over")
+                  {
+                    sendGenericMessage(senderid);
+                  }
              }
              else if (messagingEvent.postback) {
-              if(store.userConversationMap[senderid].nextExpectedAction == 'chooseIdentification') {
+              if(store.userConversationMap[senderid].nextExpectedAction == 'chooseIdentification' && (messagingEvent.postback.payload == "start" || messagingEvent.postback.payload == "qgetbp" || messagingEvent.postback.payload == "qgetflightstatus" )){
+                  qflowtype = messagingEvent.postback.payload;
+                  sendGenericMessage(senderid);
+              }
+              else if(store.userConversationMap[senderid].nextExpectedAction == 'chooseIdentification') {
                   receivedPostBackForIdentification(req, messagingEvent);
               }
               else {
-                sendMessage(senderid,"Your input is invalid for current question. Do you want end the session??");    
+                sendMessage(senderid,"Your input is invalid for current question. please re enter");    
               }
             }       
               
@@ -120,19 +130,20 @@ function receivedPostBackForquickreply(senderid, mode,message){
   if (message) {
     switch (message) {
       case 'itinerary':
-        setSession('pnrCheck',senderid);
+        setSession('viewItinerary',senderid);
         sendItinerary(senderid);
         setTimeout(function() {
           quickreplies_checkin(senderid);
-        }, 5000);
+        }, 3000);
         break;
       case 'checkin':
-        setSession('e-tktCheck',senderid);
-        sendCheckin(senderid);
-        break;
       case 'checkin-yes':
-        sendCheckin(senderid);
+        sendBoardingPass(senderid);
+        endMessage(senderid, 3000);
         break;
+      case 'checkin-no':
+        endMessage(senderid, 0);
+        break;  
     }
   }
 }
@@ -168,19 +179,47 @@ function receivedPostBackForIdentification(req, event){
   } 
 }
 
+function decideFlows(recipientId){
+  if(qflowtype == "qgetbp"){
+          sendBoardingPass(recipientId);
+          endMessage(recipientId, 3000);
+          qflowtype = '';
+        }
+        else if(qflowtype == "qgetflightstatus"){
+          sendFlightStatus(recipientId);
+          endMessage(recipientId, 3000);
+          qflowtype = '';
+        }
+        else{
+          setSession('itinerary',recipientId);
+          quickreplies(recipientId);
+        }
+}
+
 function checkIdentification(recipientId, mode, message){
    var itinerary = getJson('getItinerary');
    if(mode == "pnrCheck"){
-      if(itinerary.attachment.payload.pnr_number == message.text){
+      if((itinerary.attachment.payload.pnr_number).toLowerCase() == (message.text).toLowerCase()){
         //sendItinerary(recipientId);
-        quickreplies(recipientId);
-        setSession('itinerary',recipientId);
+        decideFlows(recipientId);
       }  
       else
        sendMessage(recipientId,"Your PNR is invalid. Please re-enter");  
    }
-   else if (mode == "e-tktCheck"){}
-   else if (mode == "fqtCheck"){}
+   else if (mode == "e-tktCheck"){
+     if("1111111111111" == message.text){
+        decideFlows(recipientId);
+      }  
+      else
+       sendMessage(recipientId,"Your e-ticket is invalid. Please re-enter");
+   }
+   else if (mode == "fqtCheck"){
+     if("11111111111" == message.text){
+        decideFlows(recipientId);
+      }  
+      else
+       sendMessage(recipientId,"Your fqtv no is invalid. Please re-enter");
+   }
 }
 
 function addNewSender(recipientId){
@@ -262,11 +301,35 @@ function receivedMessage(event) {
 }
 
 function callSendAPI(messageData) {
+  
   request({
     uri: 'https://graph.facebook.com/v2.6/me/messages',
     qs: { access_token: "EAAEYZCvXjIksBABoD9oVmZAfguZBjnojimEtNlZBMAY2bD0OkqeaZBmGcZB62SVraANcbz4yBSGI0z2iJerTThbg6GJThZAfPb0u4X1D2O0Pi5ALzZBpjus0CLBrsYmW6pUpzLDhqhpfOdl7uoTFA9qzB1mdMBVZB0KThZAhpB3JR4gAZDZD" },
     method: 'POST',
     json: messageData
+
+  }, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      var recipientId = body.recipient_id;
+      var messageId = body.message_id;
+      addMenu(recipientId);
+      console.log("Successfully sent generic message with id %s to recipient %s", 
+        messageId, recipientId);
+        
+    } else {
+      console.error("Unable to send message.");
+      console.error(response);
+      console.error(error);
+    }
+  });  
+}
+
+function addMenu() {
+    request({
+    uri: 'https://graph.facebook.com/v2.6/me/thread_settings',
+    qs: { access_token: "EAAEYZCvXjIksBABoD9oVmZAfguZBjnojimEtNlZBMAY2bD0OkqeaZBmGcZB62SVraANcbz4yBSGI0z2iJerTThbg6GJThZAfPb0u4X1D2O0Pi5ALzZBpjus0CLBrsYmW6pUpzLDhqhpfOdl7uoTFA9qzB1mdMBVZB0KThZAhpB3JR4gAZDZD" },
+    method: 'POST',
+    json: getJson('addmenu')
 
   }, function (error, response, body) {
     if (!error && response.statusCode == 200) {
@@ -385,6 +448,13 @@ function sendadminMessage(message, recipientList,flight_info){
     message = "Your flight No : "+ flight_info + message +"\nWe are sorry for inconvenience caused.";
     sendMessage(recipientList[i], message);
   } 
+}
+
+function endMessage(senderid, time){
+  setTimeout(function() {
+          store.userConversationMap[senderid].nextExpectedAction = 'chooseIdentification';
+          sendMessage(senderid,"Thanks for using Travel bot... Have a Nice trip!!!");
+  }, time);
 }
 
 app.listen(process.env.PORT, function () {

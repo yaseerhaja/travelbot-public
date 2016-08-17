@@ -1,0 +1,31 @@
+{
+            "setting_type" : "call_to_actions",
+            "thread_state" : "existing_thread",
+            "call_to_actions":[
+              {
+                "type":"postback",
+                "title":"Start Over",
+                "payload":"start"
+              },
+              {
+                "type":"postback",
+                "title":"Get Boarding Pass",
+                "payload":"qgetbp"
+              },
+              {
+                "type":"postback",
+                "title":"Get Flight Status",
+                "payload":"qgetflightstatus"
+              },
+              {
+                "type":"postback",
+                "title":"Help",
+                "payload":"help"
+              },
+              {
+                "type":"web_url",
+                "title":"View Website",
+                "url":"http://www.klm.com/"
+              }
+            ]
+          }
