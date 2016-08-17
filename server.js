@@ -30,10 +30,6 @@ var store = {},
 app.use(bodyParser.json());
 app.use(express.static(path.resolve(__dirname, 'client')));
 
-/*var cookieParser = require('cookie-parser')
-var session = require('express-session');
-app.use(cookieParser('S3CRE7'));
-app.use(session());*/
 
 app.get('/init',function(req,res){
   res.sendFile(__dirname+'/client/index.html');
@@ -52,8 +48,6 @@ app.get('/sendMessage', function (req, res) {
 });
 
 app.post('/webhook', function (req, res) {
-  
-  console.log(store);
         var data = req.body;
         if (data.object == 'page') {
           data.entry.forEach(function(pageEntry) {
@@ -108,12 +102,10 @@ app.post('/webhook', function (req, res) {
 
 
 function initSession(senderid) {
-  console.log("store.userConversationMap :" + store.userConversationMap);
   if(store.userConversationMap == undefined) {
      store.userConversationMap = {}; 
     }
   if (store.userConversationMap[senderid] == undefined) {
-    console.log("store.userConversationMap[senderid] :" + store.userConversationMap[senderid]);
     var userData = {};
     userData['nextExpectedAction'] = 'chooseIdentification';
     store.userConversationMap[senderid] = userData;
@@ -126,7 +118,6 @@ function getJson(filename){
 }
 
 function receivedPostBackForquickreply(senderid, mode,message){
- 
   if (message) {
     switch (message) {
       case 'itinerary':
@@ -151,30 +142,23 @@ function receivedPostBackForquickreply(senderid, mode,message){
 function receivedPostBackForIdentification(req, event){
   var payload = event.postback.payload;
   var senderID = event.sender.id;
-  var modeofselection = 0;
   if (payload) {
     switch (payload) {
       case 'PNR-ENTRY':
-        modeofselection = 1;
         setSession('pnrCheck',senderID);
         sendMessage(senderID,"Please enter your PNR");
         break;
 
       case 'eTICKET-ENTRY':
-        modeofselection = 2;
         setSession('e-tktCheck',senderID);
         sendMessage(senderID, "Please enter your eTicket Number");
         break;
 
       case 'Frequentflyer-ENTRY':
-        modeofselection = 3;
         setSession('fqtCheck',senderID);
         sendMessage(senderID, "Please enter your Frequentflyer Number");
         break;
-      default:
-        modeofselection = 0;
-        //initSession(senderID);
-        //sendGenericMessage(senderID);
+      
     }
   } 
 }
@@ -200,7 +184,6 @@ function checkIdentification(recipientId, mode, message){
    var itinerary = getJson('getItinerary');
    if(mode == "pnrCheck"){
       if((itinerary.attachment.payload.pnr_number).toLowerCase() == (message.text).toLowerCase()){
-        //sendItinerary(recipientId);
         decideFlows(recipientId);
       }  
       else
@@ -222,14 +205,8 @@ function checkIdentification(recipientId, mode, message){
    }
 }
 
-function addNewSender(recipientId){
-  if(senderID_arr.indexOf(recipientId) == -1){
-     senderID_arr.push(recipientId);
-  }
-}
 
 function sendMessage(recipientId, message){
-  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
@@ -246,62 +223,7 @@ function setSession(triggerPoint,recipientId){
         store.userConversationMap[recipientId].nextExpectedAction = triggerPoint;
 }
 
-function receivedIdentificationMessage(event){
-  sendItinerary(event.sender.id);
-}
-
-function receivedMessage(event) {
-  var senderID = event.sender.id;
-  var recipientID = event.recipient.id;
-  var timeOfMessage = event.timestamp;
-  var triggerPoint ='';
-  var message = event.message;
-  console.log("Received message for user %d and page %d at %d with message:", 
-    senderID, recipientID, timeOfMessage);
-
-  // You may get a text or attachment but not both
-  var messageText = message.text;
-  var messageAttachments = message.attachments;
-
-  if (messageText) {
-
-    // If we receive a text message, check to see if it matches any special
-    // keywords and send back the corresponding example. Otherwise, just echo
-    // the text we received.
-    
-    switch (messageText) {
-      case 'generic':
-        sendGenericMessage(senderID);
-        triggerPoint = '';
-        break;
-      case 'itinerary':
-        sendItinerary(senderID);
-        triggerPoint = '';
-        break;
-      case 'checkin':
-        sendCheckin(senderID);
-        triggerPoint = '';
-        break;
-      case 'flightstatus':
-        sendFlightStatus(senderID);
-        triggerPoint = '';
-        break;
-      case 'boardingpass':
-        sendBoardingPass(senderID);
-        triggerPoint = '';
-        break;
-      default:
-        sendMessage(senderID, messageText);
-        triggerPoint = '';
-    }
-    setSession(triggerPoint,recipientID);
-  } else if (messageAttachments) {
-    sendMessage(senderID, "Message with attachment received");
-  }
-}
-
 function callSendAPI(messageData) {
-  
   request({
     uri: 'https://graph.facebook.com/v2.6/me/messages',
     qs: { access_token: "EAAEYZCvXjIksBABoD9oVmZAfguZBjnojimEtNlZBMAY2bD0OkqeaZBmGcZB62SVraANcbz4yBSGI0z2iJerTThbg6GJThZAfPb0u4X1D2O0Pi5ALzZBpjus0CLBrsYmW6pUpzLDhqhpfOdl7uoTFA9qzB1mdMBVZB0KThZAhpB3JR4gAZDZD" },
@@ -348,7 +270,6 @@ function addMenu() {
 }
 
 function sendGenericMessage(recipientId) {
-  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
@@ -361,7 +282,6 @@ function sendGenericMessage(recipientId) {
 
 
 function sendItinerary(recipientId){
-  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
@@ -371,19 +291,7 @@ function sendItinerary(recipientId){
    callSendAPI(messageData);
 }
 
-function sendCheckin(recipientId){
-  //addNewSender(recipientId);
-  var messageData = {
-    recipient: {
-      id: recipientId
-    },
-    message: getJson('getCheckin')
-  };
-  callSendAPI(messageData);
-}
-
 function sendFlightStatus(recipientId){
-  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
@@ -394,7 +302,6 @@ function sendFlightStatus(recipientId){
 }
 
 function sendBoardingPass(recipientId){
-  //addNewSender(recipientId);
   var messageData = {
     "recipient": {
       "id": recipientId

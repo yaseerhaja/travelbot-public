@@ -3,12 +3,12 @@
     "quick_replies":[
       {
         "content_type":"text",
-        "title":"Yes, & view bp",
+        "title":"Yes,see boardingpass",
         "payload":"checkin-yes"
       },
       {
         "content_type":"text",
-        "title":"No",
+        "title":"No, to Exit",
         "payload":"checkin-no"
       }
     ]

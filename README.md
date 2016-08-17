@@ -19,4 +19,4 @@ This Airline checkin example showcases how to check in with a static `express` s
 
     $ node server.js
 
-Once the server is running, open the project in the shape of 'https://projectname-username.c9.io/'. As you enter your name, watch the Users list (on the left) update. Once you press Enter or Send, the message is shared with all connected clients.
+Once the server is running, open the project in the shape of 'https://projectname-username.c9.io/'.
