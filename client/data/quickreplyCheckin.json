@@ -1,0 +1,15 @@
+{
+    "text":"Do you want to checkin",
+    "quick_replies":[
+      {
+        "content_type":"text",
+        "title":"Yes, & view bp",
+        "payload":"checkin-yes"
+      },
+      {
+        "content_type":"text",
+        "title":"No",
+        "payload":"checkin-no"
+      }
+    ]
+}

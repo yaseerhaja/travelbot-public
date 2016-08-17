@@ -1,0 +1,15 @@
+{
+    "text":"Your identification is successfull",
+    "quick_replies":[
+      {
+        "content_type":"text",
+        "title":"View Itinerary",
+        "payload":"itinerary"
+      },
+      {
+        "content_type":"text",
+        "title":"Checkin",
+        "payload":"checkin"
+      }
+    ]
+}

@@ -16,12 +16,12 @@ var express = require('express'),
       'code1' : ' is delayed'
     },
     flightgrp = {
-      'KL1400' : ['748955295208120','1039929506083473'],
-      'KL1100' : ['748955295208120','1039929506083473'],
-      'KL1600' : ['748955295208120','1039929506083473'],
-      'AF1400' : ['748955295208120','1039929506083473'],
-      'AF1100' : ['748955295208120','1039929506083473'],
-      'AF1600' : ['748955295208120','1039929506083473'],
+      'KL1400' : ['1129479503756044','748955295208120','1039929506083473'],
+      'KL1100' : ['748955295208120','1039929506083473','1129479503756044'],
+      'KL1600' : ['748955295208120','1039929506083473','1129479503756044'],
+      'AF1400' : ['748955295208120','1039929506083473','1129479503756044'],
+      'AF1100' : ['748955295208120','1039929506083473','1129479503756044'],
+      'AF1600' : ['748955295208120','1039929506083473','1129479503756044']
     },
     welcomeMessage = "Greetings! We are here to help you with checkin and other available feature in checkin phase for multiple airlines, please choose your airline…",
     airlineSelection = getJson('airlines');
@@ -58,26 +58,46 @@ app.post('/webhook', function (req, res) {
           data.entry.forEach(function(pageEntry) {
           pageEntry.messaging.forEach(function(messagingEvent) {
             var senderid = messagingEvent.sender.id;
-            initSession(senderid);
-          if (messagingEvent.message) {
-            sendGenericMessage(senderid);
-            }
-          else if (messagingEvent.postback) {
-              if (store.userConversationMap != undefined && store.userConversationMap[senderid] != undefined && store.userConversationMap[senderid].nextExpectedAction == 'chooseIdentification') {
-                  receivedPostBackForIdentification(req, messagingEvent);
-              } else {
-                initSession(senderid);
-                sendGenericMessage(senderid);    
+              /*console.log("senderid :" + senderid);
+               var recipientID = messagingEvent.recipient.id;
+              console.log("recipientID " +  recipientID)*/
+              
+              if(typeof store.userConversationMap === 'undefined' || typeof store.userConversationMap[senderid] === 'undefined'){
+                 initSession(senderid);
               }
-        }
+              
+             if (messagingEvent.message) {
+                console.log("Next Action ---> "+store.userConversationMap[senderid].nextExpectedAction);
+                if(messagingEvent.message.text == "end"){
+                  store.userConversationMap[senderid].nextExpectedAction = 'chooseIdentification';
+                  sendMessage(senderid,"Your current session is ended.");
+                }
+                else if(store.userConversationMap[senderid].nextExpectedAction == 'pnrCheck' || store.userConversationMap[senderid].nextExpectedAction == 'e-tktCheck' ||
+                  store.userConversationMap[senderid].nextExpectedAction == 'fqtCheck')
+                  checkIdentification(senderid,store.userConversationMap[senderid].nextExpectedAction,messagingEvent.message);
+                else if(store.userConversationMap[senderid].nextExpectedAction == 'itinerary'){
+                  receivedPostBackForquickreply(senderid, store.userConversationMap[senderid].nextExpectedAction,messagingEvent.message.quick_reply.payload);
+                }
+                else
+                  sendGenericMessage(senderid);
+             }
+             else if (messagingEvent.postback) {
+              if(store.userConversationMap[senderid].nextExpectedAction == 'chooseIdentification') {
+                  receivedPostBackForIdentification(req, messagingEvent);
+              }
+              else {
+                sendMessage(senderid,"Your input is invalid for current question. Do you want end the session??");    
+              }
+            }       
+              
           })
           });
       } 
     res.sendStatus(200);
   });
 
+
 function initSession(senderid) {
-  console.log("senderid :" + senderid);
   console.log("store.userConversationMap :" + store.userConversationMap);
   if(store.userConversationMap == undefined) {
      store.userConversationMap = {}; 
@@ -95,6 +115,28 @@ function getJson(filename){
  return contents;
 }
 
+function receivedPostBackForquickreply(senderid, mode,message){
+ 
+  if (message) {
+    switch (message) {
+      case 'itinerary':
+        setSession('pnrCheck',senderid);
+        sendItinerary(senderid);
+        setTimeout(function() {
+          quickreplies_checkin(senderid);
+        }, 5000);
+        break;
+      case 'checkin':
+        setSession('e-tktCheck',senderid);
+        sendCheckin(senderid);
+        break;
+      case 'checkin-yes':
+        sendCheckin(senderid);
+        break;
+    }
+  }
+}
+
 function receivedPostBackForIdentification(req, event){
   var payload = event.postback.payload;
   var senderID = event.sender.id;
@@ -103,24 +145,42 @@ function receivedPostBackForIdentification(req, event){
     switch (payload) {
       case 'PNR-ENTRY':
         modeofselection = 1;
+        setSession('pnrCheck',senderID);
         sendMessage(senderID,"Please enter your PNR");
         break;
 
       case 'eTICKET-ENTRY':
         modeofselection = 2;
+        setSession('e-tktCheck',senderID);
         sendMessage(senderID, "Please enter your eTicket Number");
         break;
 
       case 'Frequentflyer-ENTRY':
         modeofselection = 3;
+        setSession('fqtCheck',senderID);
         sendMessage(senderID, "Please enter your Frequentflyer Number");
         break;
       default:
         modeofselection = 0;
-        initSession(senderID);
-        sendGenericMessage(senderID);
+        //initSession(senderID);
+        //sendGenericMessage(senderID);
     }
   } 
+}
+
+function checkIdentification(recipientId, mode, message){
+   var itinerary = getJson('getItinerary');
+   if(mode == "pnrCheck"){
+      if(itinerary.attachment.payload.pnr_number == message.text){
+        //sendItinerary(recipientId);
+        quickreplies(recipientId);
+        setSession('itinerary',recipientId);
+      }  
+      else
+       sendMessage(recipientId,"Your PNR is invalid. Please re-enter");  
+   }
+   else if (mode == "e-tktCheck"){}
+   else if (mode == "fqtCheck"){}
 }
 
 function addNewSender(recipientId){
@@ -130,7 +190,7 @@ function addNewSender(recipientId){
 }
 
 function sendMessage(recipientId, message){
-  addNewSender(recipientId);
+  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
@@ -139,8 +199,12 @@ function sendMessage(recipientId, message){
       text: message
     }
   };
-
   callSendAPI(messageData);
+}
+
+function setSession(triggerPoint,recipientId){
+  if(store.userConversationMap)
+        store.userConversationMap[recipientId].nextExpectedAction = triggerPoint;
 }
 
 function receivedIdentificationMessage(event){
@@ -151,6 +215,7 @@ function receivedMessage(event) {
   var senderID = event.sender.id;
   var recipientID = event.recipient.id;
   var timeOfMessage = event.timestamp;
+  var triggerPoint ='';
   var message = event.message;
   console.log("Received message for user %d and page %d at %d with message:", 
     senderID, recipientID, timeOfMessage);
@@ -164,25 +229,33 @@ function receivedMessage(event) {
     // If we receive a text message, check to see if it matches any special
     // keywords and send back the corresponding example. Otherwise, just echo
     // the text we received.
+    
     switch (messageText) {
       case 'generic':
         sendGenericMessage(senderID);
+        triggerPoint = '';
         break;
       case 'itinerary':
         sendItinerary(senderID);
+        triggerPoint = '';
         break;
       case 'checkin':
         sendCheckin(senderID);
+        triggerPoint = '';
         break;
       case 'flightstatus':
         sendFlightStatus(senderID);
+        triggerPoint = '';
         break;
       case 'boardingpass':
         sendBoardingPass(senderID);
+        triggerPoint = '';
         break;
       default:
         sendMessage(senderID, messageText);
+        triggerPoint = '';
     }
+    setSession(triggerPoint,recipientID);
   } else if (messageAttachments) {
     sendMessage(senderID, "Message with attachment received");
   }
@@ -199,9 +272,10 @@ function callSendAPI(messageData) {
     if (!error && response.statusCode == 200) {
       var recipientId = body.recipient_id;
       var messageId = body.message_id;
-
+      
       console.log("Successfully sent generic message with id %s to recipient %s", 
         messageId, recipientId);
+        
     } else {
       console.error("Unable to send message.");
       console.error(response);
@@ -211,19 +285,20 @@ function callSendAPI(messageData) {
 }
 
 function sendGenericMessage(recipientId) {
-  addNewSender(recipientId);
+  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
     },
     message: getJson('generic')
-  };  
+    
+  };
   callSendAPI(messageData);
 }
 
 
 function sendItinerary(recipientId){
-  addNewSender(recipientId);
+  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
@@ -234,7 +309,7 @@ function sendItinerary(recipientId){
 }
 
 function sendCheckin(recipientId){
-  addNewSender(recipientId);
+  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
@@ -245,7 +320,7 @@ function sendCheckin(recipientId){
 }
 
 function sendFlightStatus(recipientId){
-  addNewSender(recipientId);
+  //addNewSender(recipientId);
   var messageData = {
     recipient: {
       id: recipientId
@@ -256,7 +331,7 @@ function sendFlightStatus(recipientId){
 }
 
 function sendBoardingPass(recipientId){
-  addNewSender(recipientId);
+  //addNewSender(recipientId);
   var messageData = {
     "recipient": {
       "id": recipientId
@@ -265,6 +340,29 @@ function sendBoardingPass(recipientId){
   };
                 
    callSendAPI(messageData);
+}
+
+function quickreplies(recipientId){
+  var messageData = {
+    "recipient": {
+      "id": recipientId
+    },
+     "message": getJson('quickreply') 
+  };
+                
+   callSendAPI(messageData);
+}
+
+function quickreplies_checkin(recipientId){
+  var messageData = {
+    "recipient": {
+      "id": recipientId
+    },
+     "message": getJson('quickreplyCheckin') 
+  };
+                
+   callSendAPI(messageData);
+  
 }
 
 function broadCastMessage(){
@@ -290,6 +388,6 @@ function sendadminMessage(message, recipientList,flight_info){
 }
 
 app.listen(process.env.PORT, function () {
-  //setTimeout(broadCastMessage, 5000);
+  setTimeout(broadCastMessage, 5000);
   console.log('Server is up and running...');
 });
